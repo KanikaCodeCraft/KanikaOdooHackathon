@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitOps - Smart Transport Operations</title>
+    <!-- Tailwind CSS for Rapid UI Development -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col">
+
+    <!-- 0. AUTHENTICATION (RBAC) SPLIT SCREEN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 bg-gray-950 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl min-h-[600px] grid grid-cols-1 md:grid-cols-12 overflow-hidden border border-gray-800">
+            
+            <!-- Left Info Panel (Light Slate Theme) -->
+            <div class="md:col-span-5 bg-slate-300 text-slate-900 p-10 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-8 h-8 bg-amber-600 rounded"></div>
+                        <h2 class="text-2xl font-bold tracking-tight text-slate-950">TransitOps</h2>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-600 mb-12 tracking-wide">Smart Transport Operations Platform</p>
+                    
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">One login, four roles:</h3>
+                    <ul class="space-y-3 font-medium text-slate-700 text-sm">
+                        <li class="flex items-center gap-2"><span class="text-amber-600">◆</span> Fleet Manager</li>
+                        <li class="flex items-center gap-2"><span class="text-amber-600">◆</span> Dispatcher</li>
+                        <li class="flex items-center gap-2"><span class="text-amber-600">◆</span> Safety Officer</li>
+                        <li class="flex items-center gap-2"><span class="text-amber-600">◆</span> Financial Analyst</li>
+                    </ul>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono tracking-widest uppercase">
+                    TRANSITOPS © 2026 · RBAC ENABLED
+                </div>
+            </div>
+
+            <!-- Right Login Form Panel -->
+            <div class="md:col-span-7 p-10 flex flex-col justify-center relative bg-gray-900">
+                <div class="max-w-md w-full mx-auto space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white tracking-tight">Sign in to your account</h2>
+                        <p class="text-xs text-gray-400 mt-1">Enter your credentials to continue</p>
+                    </div>
+
+                    <!-- Dynamic Error State Message -->
+                    <div id="login-error" class="hidden bg-red-950/40 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-xs font-mono space-y-1">
+                        <p class="font-bold">❌ Invalid credentials.</p>
+                        <p class="text-red-400 text-[10px]">Account locked after 5 failed attempts.</p>
+                    </div>
+
+                    <form id="login-form" class="space-y-4 text-xs">
+                        <div>
+                            <label class="block font-bold tracking-wider uppercase text-gray-400 mb-1 text-[10px]">Email</label>
+                            <input type="email" id="login-email" required value="admin@transitops.com" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-amber-600 text-white font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-bold tracking-wider uppercase text-gray-400 mb-1 text-[10px]">Password</label>
+                            <input type="password" id="login-password" required value="adminpassword" class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-amber-600 text-white font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-bold tracking-wider uppercase text-gray-400 mb-1 text-[10px]">Role (RBAC)</label>
+                            <select id="login-role" required class="w-full bg-gray-950 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-amber-600 text-white font-medium">
+                                <option value="Fleet Manager">Fleet Manager</option>
+                                <option value="Dispatcher">Dispatcher</option>
+                                <option value="Safety Officer">Safety Officer</option>
+                                <option value="Financial Analyst">Financial Analyst</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] pt-1 text-gray-400">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" checked class="accent-amber-600 rounded"> Remember me
+                            </label>
+                            <a href="#" class="text-indigo-400 hover:underline">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="w-full bg-amber-700 hover:bg-amber-600 font-bold py-3 rounded-lg transition text-white mt-4 text-sm tracking-wide shadow-md">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="pt-6 border-t border-gray-800 text-[11px] text-gray-400 space-y-1.5">
+                        <p class="font-semibold text-gray-500 mb-1">Access is scoped by role after login:</p>
+                        <p>• Fleet Manager → Fleet, Maintenance</p>
+                        <p>• Dispatcher → Dashboard, Trips</p>
+                        <p>• Safety Officer → Drivers, Compliance</p>
+                        <p>• Financial Analyst → Fuel & Expenses, Analytics</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <!-- MAIN PLATFORM LAYOUT -->
+    <div id="app-layout" class="hidden flex flex-1 flex-col md:flex-row h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 bg-gray-950 border-r border-gray-800 p-6 flex flex-col justify-between">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-white mb-8 flex items-center gap-2">
+                    TransitOps
+                </h1>
+                <nav class="space-y-1 text-sm">
+                    <button onclick="switchTab('dashboard')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium bg-gray-800 text-indigo-400">Dashboard</button>
+                    <button onclick="switchTab('vehicles')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Fleet</button>
+                    <button onclick="switchTab('drivers')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Drivers</button>
+                    <button onclick="switchTab('trips')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Trips</button>
+                    <button onclick="switchTab('maintenance')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Maintenance</button>
+                    <button onclick="switchTab('expenses')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Fuel & Expenses</button>
+                    <button onclick="switchTab('analytics')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Analytics</button>
+                    <button onclick="switchTab('settings')" class="nav-btn w-full text-left px-4 py-2 rounded-md font-medium text-gray-400 hover:bg-gray-900/50 hover:text-gray-200">Settings</button>
+                </nav>
+            </div>
+            <div class="pt-4 border-t border-gray-800 flex items-center justify-between">
+                <span id="user-display" class="text-xs text-gray-500 font-mono">Role: None</span>
+                <button onclick="logout()" class="text-xs font-bold text-red-400 hover:underline">Log Out</button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="flex-1 bg-gray-900 p-8 overflow-y-auto text-gray-200">
+            
+            <!-- TAB 1: DASHBOARD VIEWS -->
+            <section id="tab-dashboard" class="tab-content space-y-8">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+                    <input type="text" placeholder="Search..." class="bg-gray-950 border border-gray-800 rounded-lg px-4 py-1.5 text-xs w-64 focus:outline-none focus:border-gray-700 text-white">
+                    <div class="flex items-center gap-3 text-xs text-gray-400">
+                        <span id="header-username">Raven K.</span>
+                        <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center font-bold text-white text-[11px] border border-blue-400/30">RK</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Active Vehicles</p>
+                        <p id="kpi-active" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Available Vehicles</p>
+                        <p id="kpi-available" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Vehicles In Shop</p>
+                        <p id="kpi-shop" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Active Trips</p>
+                        <p id="kpi-active-trips" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Pending Trips</p>
+                        <p id="kpi-pending-trips" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Drivers On Duty</p>
+                        <p id="kpi-drivers" class="text-2xl font-bold mt-1 text-white">0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-4 rounded-lg shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Fleet Utilization</p>
+                        <p id="kpi-utilization" class="text-2xl font-bold mt-1 text-white">0%</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 pt-2">
+                    <div class="xl:col-span-2 space-y-3">
+                        <h3 class="text-xs uppercase font-bold tracking-wider text-gray-400">Recent Trips</h3>
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                                    <tr>
+                                        <th class="p-3.5 pl-4">Trip</th>
+                                        <th class="p-3.5">Vehicle</th>
+                                        <th class="p-3.5">Driver</th>
+                                        <th class="p-3.5">Status</th>
+                                        <th class="p-3.5 pr-4">ETA</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-trips-body" class="divide-y divide-gray-900"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-xs uppercase font-bold tracking-wider text-gray-400">Vehicle Status</h3>
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-gray-400"><span>Available</span><span id="status-count-avail" class="font-mono">0</span></div>
+                                <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden">
+                                    <div id="status-bar-avail" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-gray-400"><span>On Trip</span><span id="status-count-trip" class="font-mono">0</span></div>
+                                <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden">
+                                    <div id="status-bar-trip" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-gray-400"><span>In Shop</span><span id="status-count-shop" class="font-mono">0</span></div>
+                                <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden">
+                                    <div id="status-bar-shop" class="bg-amber-600 h-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: VEHICLE MANAGEMENT -->
+            <section id="tab-vehicles" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                    <div class="flex flex-wrap items-center gap-3 text-xs">
+                        <select id="f-filter-type" class="bg-gray-950 border border-gray-800 rounded-lg p-2 text-gray-300">
+                            <option value="">Type: All</option>
+                            <option value="Van">Van</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Mini">Mini</option>
+                        </select>
+                        <select id="f-filter-status" class="bg-gray-950 border border-gray-800 rounded-lg p-2 text-gray-300">
+                            <option value="">Status: All</option>
+                            <option value="Available">Available</option>
+                            <option value="On Trip">On Trip</option>
+                            <option value="In Shop">In Shop</option>
+                        </select>
+                        <input type="text" id="f-search-reg" placeholder="Search reg. no..." class="bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-white w-48 focus:outline-none">
+                    </div>
+                    <button onclick="toggleModal('vehicle-modal', true)" class="bg-amber-600 hover:bg-amber-700 font-bold px-4 py-2 rounded-lg text-xs text-white shadow shadow-amber-600/20">+ Add Vehicle</button>
+                </div>
+                <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                            <tr>
+                                <th class="p-4 pl-5">Reg. No. (Unique)</th>
+                                <th class="p-4">Name/Model</th>
+                                <th class="p-4">Type</th>
+                                <th class="p-4">Capacity</th>
+                                <th class="p-4">Odometer</th>
+                                <th class="p-4">Acq. Cost</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right pr-5">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vehicle-table-body" class="divide-y divide-gray-900"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: DRIVER & SAFETY ROSTER -->
+            <section id="tab-drivers" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+                    <h2 class="text-xl font-bold text-white">Drivers & Safety Profiles</h2>
+                    <button onclick="toggleModal('driver-modal', true)" class="bg-amber-600 hover:bg-amber-700 font-bold px-4 py-2 rounded-lg text-xs text-white shadow shadow-amber-600/20">+ Add Driver</button>
+                </div>
+                <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                            <tr>
+                                <th class="p-4 pl-5">Driver</th>
+                                <th class="p-4">License No.</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Expiry</th>
+                                <th class="p-4">Contact</th>
+                                <th class="p-4">Trip Compl.</th>
+                                <th class="p-4">Safety Score</th>
+                                <th class="p-4 pr-5">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="driver-table-body" class="divide-y divide-gray-900"></tbody>
+                    </table>
+                </div>
+                <div class="space-y-2 pt-2">
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">Toggle Status Filter</span>
+                    <div class="flex flex-wrap gap-2.5">
+                        <button onclick="filterDriverStatus('Available')" class="bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 px-3 py-1.5 rounded-md font-bold text-[11px]">Available</button>
+                        <button onclick="filterDriverStatus('On Trip')" class="bg-blue-950/40 text-blue-400 border border-blue-800/40 px-3 py-1.5 rounded-md font-bold text-[11px]">On Trip</button>
+                        <button onclick="filterDriverStatus('Suspended')" class="bg-amber-950/40 text-amber-500 border border-amber-800/40 px-3 py-1.5 rounded-md font-bold text-[11px]">Suspended</button>
+                        <button onclick="filterDriverStatus('')" class="bg-gray-900 text-gray-400 px-3 py-1.5 rounded-md font-bold text-[11px]">Clear Filter</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: INTEGRATED TRIP DISPATCHER -->
+            <section id="tab-trips" class="tab-content hidden space-y-6">
+                <div class="border-b border-gray-800 pb-4"><h2 class="text-xl font-bold text-white">4. Trip Dispatcher</h2></div>
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                    <div class="xl:col-span-5 bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs">
+                        <h3 class="text-xs uppercase font-bold text-amber-500">Create Trip</h3>
+                        <form id="direct-trip-form" class="space-y-3">
+                            <input type="text" id="dt-source" required placeholder="Source Terminal Location" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <input type="text" id="dt-dest" required placeholder="Destination Hub Location" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <select id="dt-vehicle" required onchange="validateLiveTripPayload()" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none"></select>
+                            <select id="dt-driver" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none"></select>
+                            <input type="number" id="dt-weight" required placeholder="Cargo Weight (kg)" oninput="validateLiveTripPayload()" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <input type="number" id="dt-distance" required placeholder="Planned Distance (km)" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            
+                            <div id="dt-validation-banner" class="hidden bg-red-950/40 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg font-mono">
+                                <p id="dt-val-vcap"></p><p id="dt-val-cweight"></p><p id="dt-val-msg" class="text-red-400 font-bold mt-1"></p>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit" id="dt-submit-btn" class="flex-1 bg-amber-700 hover:bg-amber-600 font-bold py-2.5 rounded-lg text-white text-[11px] uppercase tracking-wider">Dispatch</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="xl:col-span-7 space-y-3">
+                        <h3 class="text-xs uppercase font-bold text-gray-400">Live Board</h3>
+                        <div id="live-board-container" class="space-y-3"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: MAINTENANCE DESK -->
+            <section id="tab-maintenance" class="tab-content hidden space-y-6">
+                <div class="border-b border-gray-800 pb-4"><h2 class="text-xl font-bold text-white">5. Maintenance Center</h2></div>
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                    <div class="xl:col-span-5 bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs">
+                        <form id="maintenance-form" class="space-y-3">
+                            <select id="m-vehicle" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none"></select>
+                            <input type="text" id="m-type" required placeholder="Service Type" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <input type="number" id="m-cost" required placeholder="Cost (₹)" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <input type="date" id="m-date" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none">
+                            <button type="submit" class="w-full bg-amber-700 font-bold py-2.5 rounded-lg text-white text-[11px] uppercase tracking-wider">Save Record</button>
+                        </form>
+                    </div>
+                    <div class="xl:col-span-7 space-y-3">
+                        <h3 class="text-xs uppercase font-bold text-gray-400">Service Log</h3>
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                                    <tr>
+                                        <th class="p-4 pl-5">Vehicle</th><th class="p-4">Service</th><th class="p-4">Cost</th><th class="p-4">Status</th><th class="p-4 text-right pr-5">Execution</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="maintenance-table-body" class="divide-y divide-gray-900"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: FUEL & EXPENSES -->
+            <section id="tab-expenses" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+                    <h2 class="text-xl font-bold text-white">6. Fuel & Expense Management</h2>
+                    <div class="flex gap-2">
+                        <button onclick="toggleModal('fuel-modal', true)" class="bg-amber-700 font-bold px-4 py-2 rounded-lg text-xs text-white shadow shadow-amber-700/20">+ Log Fuel</button>
+                        <button onclick="toggleModal('other-expense-modal', true)" class="bg-amber-600 font-bold px-4 py-2 rounded-lg text-xs text-white shadow shadow-amber-600/20">+ Add Expense</button>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase font-bold text-gray-400">Fuel Logs</h3>
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                                <tr><th class="p-3.5 pl-5">Vehicle</th><th class="p-3.5">Date</th><th class="p-3.5">Liters</th><th class="p-3.5 pr-5">Cost (₹)</th></tr>
+                            </thead>
+                            <tbody id="fuel-table-body" class="divide-y divide-gray-900"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 flex justify-between items-center font-mono text-xs shadow-sm">
+                    <span class="text-gray-400 uppercase tracking-wider">Total Operational Cost (Auto) = Fuel + Maint</span>
+                    <span class="text-amber-500 text-lg font-bold" id="expense-total-cost-calc">₹0</span>
+                </div>
+            </section>
+
+            <!-- TAB 7: REPORTS & ANALYTICS -->
+            <section id="tab-analytics" class="tab-content hidden space-y-8">
+                <div class="border-b border-gray-800 pb-4"><h2 class="text-xl font-bold text-white">7. Reports & Analytics</h2></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div class="bg-gray-950 border border-gray-800 p-5 rounded-xl shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">Fuel Efficiency</p>
+                        <p id="an-kpi-efficiency" class="text-2xl font-bold mt-2 text-white">8.4 km/l</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-5 rounded-xl shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">Fleet Utilization</p>
+                        <p id="an-kpi-utilization" class="text-2xl font-bold mt-2 text-white">81%</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-5 rounded-xl shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">Operational Cost</p>
+                        <p id="an-kpi-cost" class="text-2xl font-bold mt-2 text-white">₹0</p>
+                    </div>
+                    <div class="bg-gray-950 border border-gray-800 p-5 rounded-xl shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-gray-500">Vehicle ROI</p>
+                        <p id="an-kpi-roi" class="text-2xl font-bold mt-2 text-white">0%</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                    <div class="xl:col-span-7 space-y-4">
+                        <h3 class="text-xs uppercase font-bold text-gray-400">Monthly Revenue</h3>
+                        <div id="analytics-revenue-chart" class="bg-gray-950 border border-gray-800 rounded-xl p-6 h-48 flex items-end justify-between gap-2.5 shadow-inner"></div>
+                    </div>
+                    <div class="xl:col-span-5 space-y-4">
+                        <h3 class="text-xs uppercase font-bold text-gray-400">Top Costliest Vehicles</h3>
+                        <div id="analytics-costliest-container" class="bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs shadow-sm"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 8: SETTINGS & RBAC PROVISIONING DESK -->
+            <section id="tab-settings" class="tab-content hidden space-y-6">
+                <div class="border-b border-gray-800 pb-4">
+                    <h2 class="text-xl font-bold tracking-tight text-white">8. Settings & RBAC</h2>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                    
+                    <!-- Left Column: Settings Forms Stack (5/12 Width) -->
+                    <div class="xl:col-span-5 space-y-6">
+                        
+                        <!-- Block A: General Config -->
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs">
+                            <h3 class="text-xs uppercase font-bold tracking-wider text-amber-500">General</h3>
+                            <form id="settings-general-form" class="space-y-3">
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Depot Name</label>
+                                    <input type="text" id="s-depot-name" value="Gandhinagar Depot GJ4" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Currency</label>
+                                    <input type="text" id="s-currency" value="INR (Rs)" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Distance Unit</label>
+                                    <input type="text" id="s-distance" value="Kilometers" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-500 font-bold px-5 py-2.5 rounded-lg text-white transition text-[11px] uppercase tracking-wider shadow-sm">
+                                    Save changes
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Block B: New User Provisioning Pane -->
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl p-5 space-y-4 text-xs">
+                            <h3 class="text-xs uppercase font-bold tracking-wider text-indigo-400">Provision New User Account</h3>
+                            <form id="rbac-user-form" class="space-y-3">
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Full Name</label>
+                                    <input type="text" id="nu-name" placeholder="e.g., Sumit Kumar" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Email Address</label>
+                                    <input type="email" id="nu-email" placeholder="e.g., operator@transitops.com" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Password</label>
+                                    <input type="password" id="nu-password" placeholder="••••••••" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-gray-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block font-bold tracking-wider uppercase text-gray-500 mb-1 text-[9px]">Assigned Operational Scope (RBAC)</label>
+                                    <select id="nu-role" required class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:outline-none font-medium">
+                                        <option value="Fleet Manager">Fleet Manager</option>
+                                        <option value="Dispatcher">Dispatcher</option>
+                                        <option value="Safety Officer">Safety Officer</option>
+                                        <option value="Financial Analyst">Financial Analyst</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-2.5 rounded-lg text-white transition text-[11px] uppercase tracking-wider shadow-sm">
+                                    Authorize & Add User
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: System RBAC Permission Matrix Reference (7/12 Width) -->
+                    <div class="xl:col-span-7 space-y-3">
+                        <h3 class="text-xs uppercase font-bold tracking-wider text-gray-400">Role-Based Access Control (RBAC) Matrix</h3>
+                        <div class="bg-gray-950 border border-gray-800 rounded-xl overflow-hidden shadow-inner">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead class="bg-gray-950 text-gray-500 font-bold uppercase border-b border-gray-900">
+                                    <tr>
+                                        <th class="p-4 pl-5">Role</th>
+                                        <th class="p-4 text-center">Fleet</th>
+                                        <th class="p-4 text-center">Drivers</th>
+                                        <th class="p-4 text-center">Trips</th>
+                                        <th class="p-4 text-center">Fuel/Exp.</th>
+                                        <th class="p-4 text-center pr-5">Analytics</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-900 font-mono text-gray-400">
+                                    <tr class="hover:bg-gray-900/20">
+                                        <td class="p-4 pl-5 font-sans font-bold text-gray-200">Fleet Manager</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold">✓</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold">✓</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold pr-5">✓</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-900/20">
+                                        <td class="p-4 pl-5 font-sans font-bold text-gray-200">Dispatcher</td>
+                                        <td class="p-4 text-center text-amber-500 font-semibold">view</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold">✓</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-gray-600 pr-5">—</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-900/20">
+                                        <td class="p-4 pl-5 font-sans font-bold text-gray-200">Safety Officer</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold">✓</td>
+                                        <td class="p-4 text-center text-amber-500 font-semibold">view</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-gray-600 pr-5">—</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-900/20">
+                                        <td class="p-4 pl-5 font-sans font-bold text-gray-200">Financial Analyst</td>
+                                        <td class="p-4 text-center text-amber-500 font-semibold">view</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-gray-600">—</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold">✓</td>
+                                        <td class="p-4 text-center text-emerald-400 font-bold pr-5">✓</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+    <!-- VEHICLE MODAL OVERLAY -->
+    <div id="vehicle-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-40 p-4">
+        <div class="bg-gray-800 max-w-md w-full rounded-xl p-6 border border-gray-700 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-indigo-400">Add Fleet Asset</h3>
+            <form id="vehicle-form" class="space-y-3 text-sm">
+                <input type="text" id="v-reg" placeholder="Registration Number" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="text" id="v-model" placeholder="Model" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="text" id="v-type" placeholder="Type" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="number" id="v-capacity" placeholder="Max Load Capacity (kg)" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="number" id="v-odometer" placeholder="Current Odometer (km)" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="number" id="v-cost" placeholder="Acquisition Cost" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="bg-gray-700 font-semibold px-4 py-2 rounded text-xs text-white">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 font-semibold px-4 py-2 rounded text-xs text-white">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DRIVER PROFILE CREATION MODAL OVERLAY -->
+    <div id="driver-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-40 p-4">
+        <div class="bg-gray-800 max-w-md w-full rounded-xl p-6 border border-gray-700 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-amber-500">Add Fleet Operator Profile</h3>
+            <form id="driver-form" class="space-y-3 text-sm">
+                <input type="text" id="d-name" placeholder="Driver Full Name" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="text" id="d-license" placeholder="License Number" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <input type="text" id="d-cat" placeholder="License Category" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">License Expiry Date</label>
+                    <input type="date" id="d-expiry" required class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                </div>
+                <input type="number" id="d-score" placeholder="Safety Performance Score (0-100)" required min="0" max="100" class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-white focus:outline-none">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal('driver-modal', false)" class="bg-gray-700 font-semibold px-4 py-2 rounded text-xs text-white">Cancel</button>
+                    <button type="submit" class="bg-amber-600 font-semibold px-4 py-2 rounded text-xs text-white">Save Operator</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FUEL LOGGING MODAL -->
+    <div id="fuel-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-40 p-4">
+        <div class="bg-gray-800 max-w-md w-full rounded-xl p-6 border border-gray-700 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-amber-500">Log Fuel Entry</h3>
+            <form id="fuel-log-form" class="space-y-3 text-sm">
+                <input type="number" id="fl-vehicle-id" placeholder="Vehicle ID (e.g., 1)" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                <input type="number" id="fl-liters" placeholder="Volume (Liters)" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                <input type="number" id="fl-cost" placeholder="Total Cost (₹)" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal('fuel-modal', false)" class="bg-gray-700 font-semibold px-4 py-2 rounded text-xs text-white">Cancel</button>
+                    <button type="submit" class="bg-amber-600 font-semibold px-4 py-2 rounded text-xs text-white">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OTHER EXPENSE MODAL -->
+    <div id="other-expense-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-40 p-4">
+        <div class="bg-gray-800 max-w-md w-full rounded-xl p-6 border border-gray-700 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-amber-500">Log Route Expense</h3>
+            <form id="other-expense-form" class="space-y-3 text-sm">
+                <input type="number" id="oe-vehicle-id" placeholder="Vehicle ID" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                <select id="oe-type" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                    <option value="Toll">Toll Fee</option>
+                    <option value="Other">Other Overhead</option>
+                </select>
+                <input type="number" id="oe-cost" placeholder="Total Cost (₹)" required class="w-full bg-gray-900 border border-gray-700 p-2.5 rounded text-white focus:outline-none">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal('other-expense-modal', false)" class="bg-gray-700 font-semibold px-4 py-2 rounded text-xs text-white">Cancel</button>
+                    <button type="submit" class="bg-amber-600 font-semibold px-4 py-2 rounded text-xs text-white">Save Cost</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

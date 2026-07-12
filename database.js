@@ -15,14 +15,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
 function initializeTables() {
     db.serialize(() => {
         // 1. USERS TABLE
+        // 1. UPDATE THE VALID ENUM PRIVILEGES IN database.js
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT CHECK(role IN ('Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst')) NOT NULL,
+            role TEXT CHECK(role IN ('Fleet Manager', 'Dispatcher', 'Driver', 'Safety Officer', 'Financial Analyst')) NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
-
         // 2. VEHICLES TABLE
         db.run(`CREATE TABLE IF NOT EXISTS vehicles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
