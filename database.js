@@ -85,8 +85,27 @@ function initializeTables() {
             FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
             FOREIGN KEY (trip_id) REFERENCES trips(id)
         )`, () => {
-            // Seed default superuser once tables are ready
-            seedDefaultUser();
+            // 7. AUDIT LOGS
+            db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action TEXT NOT NULL,
+                details TEXT NOT NULL,
+                logged_by TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`, () => {
+                db.get(`SELECT id FROM audit_logs LIMIT 1`, (err, row) => {
+                    if (!row) {
+                        db.run(`INSERT INTO audit_logs (action, details, logged_by) VALUES (?, ?, ?)`,
+                            ['Database Initialize', 'Audit logger system activated.', 'System Backend'],
+                            () => {
+                                seedDefaultUser();
+                            }
+                        );
+                    } else {
+                        seedDefaultUser();
+                    }
+                });
+            });
         });
     });
 }

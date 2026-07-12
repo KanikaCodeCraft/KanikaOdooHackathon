@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database');
+const { logAudit } = require('./audit');
 
 // 1. Authentication Middleware to verify token and extract user data
 function authenticateToken(req, res, next) {
@@ -51,6 +52,7 @@ router.post('/login', (req, res) => {
             { expiresIn: '4h' }
         );
 
+        logAudit('User Login', `Session initiated for ${user.email} (${user.role})`, user.email);
         res.json({
             message: 'Authentication successful',
             token,
@@ -97,6 +99,7 @@ router.post('/register', async (req, res) => {
                     return res.status(500).json({ error: `Database Error: ${insertErr.message}` });
                 }
 
+                logAudit('User Registered', `Account authorized for ${email} as ${role}`, req.user ? req.user.email : 'System Backend');
                 // 4. Return successful response payload back to client
                 return res.status(201).json({
                     success: true,

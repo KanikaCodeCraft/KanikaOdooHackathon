@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { authenticateToken, authorizeRoles } = require('./auth');
+const { logAudit } = require('./audit');
 
 // 1. GET /api/trips - Retrieve all trips
 router.get('/', authenticateToken, (req, res) => {
@@ -49,6 +50,7 @@ router.post('/', authenticateToken, authorizeRoles('Fleet Manager', 'Driver'), (
                            VALUES (?, ?, ?, ?, ?, ?, 'Draft')`;
             db.run(query, [source, destination, vehicle_id, driver_id, cargo_weight, planned_distance], function(insertErr) {
                 if (insertErr) return res.status(500).json({ error: insertErr.message });
+                logAudit('Trip Created', `Draft Trip #${this.lastID} created from ${source} to ${destination} (Cargo: ${cargo_weight} kg).`, req.user.email);
                 res.status(201).json({ id: this.lastID, status: 'Draft', message: 'Trip created in draft mode' });
             });
         });
@@ -74,6 +76,7 @@ router.put('/:id/dispatch', authenticateToken, authorizeRoles('Fleet Manager'), 
                     db.run(`UPDATE trips SET status = 'Dispatched' WHERE id = ?`, [tripId]);
                     db.run(`UPDATE vehicles SET status = 'On Trip' WHERE id = ?`, [trip.vehicle_id]);
                     db.run(`UPDATE drivers SET status = 'On Trip' WHERE id = ?`, [trip.driver_id]);
+                    logAudit('Trip Dispatched', `Trip #${tripId} has been dispatched. Assigned Vehicle ID: ${trip.vehicle_id}, Driver ID: ${trip.driver_id}.`, req.user.email);
                     res.json({ message: 'Trip dispatched successfully. Vehicle and driver marked On Trip.' });
                 });
             });
@@ -105,6 +108,7 @@ router.put('/:id/complete', authenticateToken, authorizeRoles('Fleet Manager', '
                     [trip.vehicle_id, tripId, fuel_liters, fuel_cost]);
             }
 
+            logAudit('Trip Completed', `Trip #${tripId} completed successfully. Final Odometer: ${final_odometer} km.${fuel_cost ? ` Registered fuel transaction of ₹${fuel_cost} (${fuel_liters} L).` : ''}`, req.user.email);
             res.json({ message: 'Trip completed safely. Assets restored to Available status.' });
         });
     });
@@ -123,6 +127,7 @@ router.put('/:id/cancel', authenticateToken, authorizeRoles('Fleet Manager'), (r
                 db.run(`UPDATE vehicles SET status = 'Available' WHERE id = ?`, [trip.vehicle_id]);
                 db.run(`UPDATE drivers SET status = 'Available' WHERE id = ?`, [trip.driver_id]);
             }
+            logAudit('Trip Cancelled', `Trip #${tripId} has been cancelled. Associated active assets released.`, req.user.email);
             res.json({ message: 'Trip cancelled. Assets rolled back to Available.' });
         });
     });

@@ -20,6 +20,7 @@ const authRoutes = require('./routes/auth');
 const vehicleRoutes = require('./routes/vehicles');
 const driverRoutes = require('./routes/drivers');
 const tripRoutes = require('./routes/trips');
+const auditRoutes = require('./routes/audit');
 
 // API Mountpoints
 app.use('/api/auth', authRoutes);
@@ -27,6 +28,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/audit-logs', auditRoutes);
 
 // SPA Routing: Redirect any non-API request back to our main HTML shell
 app.get('*all', (req, res) => {

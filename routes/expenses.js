@@ -83,4 +83,15 @@ router.get('/analytics', authenticateToken, authorizeRoles('Fleet Manager', 'Fin
     });
 });
 
+// 4. GET /api/expenses/fuel - Get all fuel logs
+router.get('/fuel', authenticateToken, (req, res) => {
+    db.all(`SELECT f.*, v.registration_number FROM fuel_expense_logs f 
+            JOIN vehicles v ON f.vehicle_id = v.id 
+            WHERE f.log_type = 'Fuel' 
+            ORDER BY f.id DESC`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
 module.exports = router;
