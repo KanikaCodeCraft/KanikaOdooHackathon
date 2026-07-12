@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const db = require('./database'); // Ensures db tables are initialized immediately
-
+const expenseRoutes = require('./routes/expenses');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -26,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/trips', tripRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 // SPA Routing: Redirect any non-API request back to our main HTML shell
 app.get('*all', (req, res) => {

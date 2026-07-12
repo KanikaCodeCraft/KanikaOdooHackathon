@@ -91,4 +91,42 @@ router.delete('/:id', authenticateToken, authorizeRoles('Fleet Manager'), (req, 
     });
 });
 
+// GET /api/vehicles/dashboard/kpis - Unified operational metrics (Section 3.2)
+router.get('/dashboard/kpis', authenticateToken, (req, res) => {
+    const metrics = {};
+
+    db.serialize(() => {
+        // A. Vehicle States
+        db.get(`SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'Available' THEN 1 END) as available,
+            COUNT(CASE WHEN status = 'On Trip' THEN 1 END) as active,
+            COUNT(CASE WHEN status = 'In Shop' THEN 1 END) as shop
+            FROM vehicles`, [], (err, vRow) => {
+                metrics.total_vehicles = vRow.total;
+                metrics.available_vehicles = vRow.available;
+                metrics.active_vehicles = vRow.active;
+                metrics.vehicles_in_maintenance = vRow.shop;
+                metrics.fleet_utilization_percent = vRow.total > 0 ? Math.round((vRow.active / vRow.total) * 100) : 0;
+        });
+
+        // B. Trip States (Section 3.2 & 3.5)
+        db.get(`SELECT 
+            COUNT(CASE WHEN status = 'Dispatched' THEN 1 END) as active_trips,
+            COUNT(CASE WHEN status = 'Draft' THEN 1 END) as pending_trips
+            FROM trips`, [], (err, tRow) => {
+                metrics.active_trips = tRow.active_trips;
+                metrics.pending_trips = tRow.pending_trips;
+        });
+
+        // C. Driver Statuses (Section 3.2 & 3.4)
+        db.get(`SELECT COUNT(*) as active_drivers FROM drivers WHERE status = 'On Trip'`, [], (err, dRow) => {
+            metrics.drivers_on_duty = dRow.active_drivers;
+            
+            // Send the completed metric package back
+            res.json(metrics);
+        });
+    });
+});
+
 module.exports = router;
